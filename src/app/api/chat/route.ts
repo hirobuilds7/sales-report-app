@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContextPack } from "@/lib/context-pack";
 import { contextPackToPromptText } from "@/lib/context-pack";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 const MODEL_ID = process.env.CHAT_MODEL ?? "claude-sonnet-4-6";
 
