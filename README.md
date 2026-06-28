@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 売上集計＋月次レポート自動化（業務ツールサンプル）
 
-## Getting Started
+Excelで毎月やっている売上集計を、CSVをドラッグ→1クリックでダッシュボード＋経営者向け月次レポート＋AI要約まで自動生成するWebツールのデモです。
 
-First, run the development server:
+「Excel・スプレッドシートの集計やコピペをAIで自動化します」というココナラ／ランサーズ出品の業務ツールサンプルとして公開しています。
+
+## できること
+
+- **CSV取込み**：複数チャネル（Amazon／楽天／Shopify 等）のCSVを別名解決でまとめて取り込み
+- **ダッシュボード**：売上推移グラフ・チャネル別シェア・商品TOP10・前月比/前年同月比カードを自動描画
+- **月次レポート**：経営者向けサマリ画面を自動生成。Markdownでダウンロード可
+- **AI要約コメント**：数字の動きをClaudeが3〜4文で要約
+- **AI改善提案チャット**：「来月どう動くべき？」「この商品なんで伸びた？」を売上データを文脈にClaudeと対話
+
+## 技術スタック
+
+- Next.js 16（App Router）＋ TypeScript ＋ Tailwind CSS v4
+- Recharts（グラフ）／ PapaParse（CSV）／ Lucide React（アイコン）
+- Anthropic Claude API（`@anthropic-ai/sdk`）
+- Vercel（ホスティング）
+
+APIキーはサーバーサイドのAPI Routeで扱い、ブラウザには渡しません。アップロードされたCSVはブラウザのlocalStorageでのみ保持され、サーバーには送信されません。
+
+## 開発
 
 ```bash
+npm install
+cp .env.example .env.local   # ANTHROPIC_API_KEY を埋める
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3000 で起動します。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+サンプルCSVを再生成したい場合：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run gen-sample
+```
 
-## Learn More
+## デプロイ
 
-To learn more about Next.js, take a look at the following resources:
+Vercelへの自動デプロイを想定しています。環境変数 `ANTHROPIC_API_KEY` を設定してください。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ライセンス
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+このサンプルのコードは MIT License で公開しています。
