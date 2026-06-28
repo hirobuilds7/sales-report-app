@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContextPack } from "@/lib/context-pack";
 import { contextPackToPromptText } from "@/lib/context-pack";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 const MODEL_ID = process.env.CHAT_MODEL ?? "claude-sonnet-4-6";
 
@@ -90,7 +90,9 @@ export async function POST(req: Request) {
   return new Response(stream, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+      "Connection": "keep-alive",
     },
   });
 }
