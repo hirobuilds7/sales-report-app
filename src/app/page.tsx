@@ -34,7 +34,7 @@ export default function Home() {
               <CsvDropzone />
             </div>
             <p className="mt-3 text-xs text-slate-500">
-              ※ アップロードしたCSVはブラウザ内（localStorage）でのみ扱います。サーバには送信されません。
+              ※ アップロードしたCSVはお使いのブラウザ内でのみ扱います。サーバには送信されません。
             </p>
           </div>
 
