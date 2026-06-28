@@ -95,11 +95,11 @@ export default function ReportPage() {
   function downloadMarkdown() {
     if (!dataset || !month) return;
     const md = buildMonthlyReportMarkdown(dataset.rows, month, aiSummary);
-    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const blob = new Blob([md], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `売上レポート_${month}.md`;
+    a.download = `売上レポート_${month}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -132,7 +132,7 @@ export default function ReportPage() {
             className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
           >
             <Download className="h-4 w-4" />
-            Markdownで保存
+            テキストで保存
           </button>
         </div>
       </div>

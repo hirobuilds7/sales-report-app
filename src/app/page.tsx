@@ -110,7 +110,7 @@ export default function Home() {
             <FeatureCard
               icon={<FileText className="h-5 w-5" />}
               title="経営者向け月次レポート"
-              body="ページを開くだけで、月次サマリをそのまま共有可能。Markdownで保存もOK。"
+              body="ページを開くだけで、月次サマリをそのまま共有可能。テキストファイルで保存もOK。"
             />
             <FeatureCard
               icon={<Sparkles className="h-5 w-5" />}
