@@ -1,0 +1,17 @@
+{
+  "month": "2026-07",
+  "total": 12480000,
+  "prevMonth": { "current": 12480000, "previous": 11250000, "delta": 1230000, "deltaRate": 0.1093 },
+  "prevYear": { "current": 12480000, "previous": 9860000, "delta": 2620000, "deltaRate": 0.2657 },
+  "channels": [
+    { "channel": "自社EC", "revenue": 5990000, "share": 0.48 },
+    { "channel": "楽天市場", "revenue": 3740000, "share": 0.3 },
+    { "channel": "Amazon", "revenue": 1870000, "share": 0.15 },
+    { "channel": "実店舗", "revenue": 880000, "share": 0.07 }
+  ],
+  "topProducts": [
+    { "productName": "オーガニックコットンTシャツ", "category": "アパレル", "revenue": 1840000, "quantity": 460 },
+    { "productName": "ステンレスボトル 500ml", "category": "雑貨", "revenue": 1320000, "quantity": 330 },
+    { "productName": "アロマディフューザー", "category": "家電", "revenue": 980000, "quantity": 140 }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+	// 売上レポートアプリ（Next 16 / App Router / API Route 2本）の Cloudflare Workers 設定
+	// 正本: memory/project-cloudflare.md（段階②）／設計書 2026-09-03_cloudflare-stage2.md
+	// 公開は deploy-cf.ps1 経由のみ＝OpenNext の成果物 .open-next/ だけを配る。
+	// ★リポ直下を assets.directory にするのは禁止（src・node_modules・.next が同居しとる）。
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "sales-report-app",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-09-03",
+	// nodejs_compat＝OpenNext の必須（★ここは @anthropic-ai/sdk が Node API を使うので特に効く）。
+	// global_fetch_strictly_public＝OpenNext 公式が既存Nextアプリ向けに指定しとるフラグ。
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	// 🔴 バージョンごとの Preview URL を出さん（2026-08-25 段階②の方針）
+	"preview_urls": false,
+	// ★ここに入れてええのは"秘密やない"値だけ。
+	//   ANTHROPIC_API_KEY は vars に書いたらアカン＝`npx wrangler secret put ANTHROPIC_API_KEY`（Fable が実行）。
+	//   下の2つは src/app/api/*/route.ts の既定値（process.env.X ?? "..." の右側）と同じ値。
+	"vars": {
+		"SUMMARIZE_MODEL": "claude-haiku-4-5",
+		"CHAT_MODEL": "claude-sonnet-4-6"
+	},
+	"observability": {
+		"enabled": true
+	}
+}

@@ -1,0 +1,11 @@
+# Cloudflare Workers のローカル開発用シークレット雛形（`.dev.vars` にコピーして値を入れる）
+# ★このファイルはキー名だけ＝値は絶対に書かん（コミットされる側やから）。
+# ★本番の ANTHROPIC_API_KEY は wrangler secret で入れる:
+#     npx wrangler secret put ANTHROPIC_API_KEY
+#   （vars/wrangler.jsonc に書いたらリポに残る＝アカン）
+ANTHROPIC_API_KEY=
+
+# モデル上書き（省略時は src の既定値＝要約 claude-haiku-4-5 / チャット claude-sonnet-4-6）
+# 本番は wrangler.jsonc の vars に同じ値が入っとる。
+SUMMARIZE_MODEL=
+CHAT_MODEL=
