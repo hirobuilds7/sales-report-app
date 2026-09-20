@@ -1,4 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  LIMITS,
+  badRequestJson,
+  checkRateLimit,
+  rateLimitJsonResponse,
+  trimField,
+  validateTabularInput,
+} from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -50,6 +58,43 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "invalid JSON" }, { status: 400 });
   }
+
+  if (!body || typeof body !== "object" || !body.prevMonth || !body.prevYear) {
+    return Response.json({ error: "送信されたデータの形式が正しくありません。" }, { status: 400 });
+  }
+
+  // 1) 入力長のガード（AI を呼ぶ前＝無料で弾く。回数もまだ消費させん）
+  const bad = validateTabularInput(
+    [
+      { label: "チャネル", value: body.channels, max: LIMITS.MAX_CONTEXT_CHANNELS },
+      { label: "商品", value: body.topProducts, max: LIMITS.MAX_CONTEXT_PRODUCTS },
+    ],
+    [
+      { label: "対象月", value: body.month },
+      ...(body.channels ?? []).map((c) => ({ label: "チャネル名", value: c?.channel })),
+      ...(body.topProducts ?? []).map((p) => ({ label: "商品名", value: p?.productName })),
+    ],
+  );
+  if (bad) return badRequestJson(bad);
+
+  // 2) 回数制限（IP/分・IP/日・デモ全体/日）＝定数は src/lib/rate-limit.ts の LIMITS
+  const verdict = await checkRateLimit(req);
+  if (!verdict.ok) return rateLimitJsonResponse(verdict);
+
+  // 3) プロンプトに載せる文字列は長さを丸める（＝トークン代の防波堤）
+  body = {
+    ...body,
+    month: trimField(body.month, 16),
+    channels: (body.channels ?? []).slice(0, LIMITS.MAX_CONTEXT_CHANNELS).map((c) => ({
+      ...c,
+      channel: trimField(c?.channel),
+    })),
+    topProducts: (body.topProducts ?? []).slice(0, LIMITS.MAX_CONTEXT_PRODUCTS).map((p) => ({
+      ...p,
+      productName: trimField(p?.productName),
+      category: trimField(p?.category),
+    })),
+  };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {

@@ -1,6 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContextPack } from "@/lib/context-pack";
 import { contextPackToPromptText } from "@/lib/context-pack";
+import {
+  LIMITS,
+  badRequestText,
+  checkRateLimit,
+  rateLimitTextResponse,
+  trimField,
+  validateChatMessages,
+  validateTabularInput,
+} from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -35,6 +44,32 @@ function fallbackReply(messages: ChatMessage[]): string {
   ].join("\n");
 }
 
+/**
+ * 文脈データ（クライアントから来る＝いくらでも大きく作れる）を安全側に丸める。
+ * ★プロンプトの長さ＝そのままトークン代なので、AI に渡す前にここで切る。
+ */
+function sanitizeContext(pack: ContextPack): ContextPack {
+  return {
+    sourceName: trimField(pack?.sourceName),
+    rowCount: Number.isFinite(pack?.rowCount) ? Math.max(0, Math.floor(pack.rowCount)) : 0,
+    months: (pack?.months ?? []).slice(0, LIMITS.MAX_CONTEXT_MONTHS).map((m) => ({
+      month: trimField(m?.month, 16),
+      revenue: Number(m?.revenue) || 0,
+    })),
+    channels: (pack?.channels ?? []).slice(0, LIMITS.MAX_CONTEXT_CHANNELS).map((c) => ({
+      channel: trimField(c?.channel),
+      revenue: Number(c?.revenue) || 0,
+      share: Number(c?.share) || 0,
+    })),
+    topProducts: (pack?.topProducts ?? []).slice(0, LIMITS.MAX_CONTEXT_PRODUCTS).map((p) => ({
+      productName: trimField(p?.productName),
+      category: trimField(p?.category),
+      revenue: Number(p?.revenue) || 0,
+      quantity: Number(p?.quantity) || 0,
+    })),
+  };
+}
+
 export async function POST(req: Request) {
   let body: ChatBody;
   try {
@@ -46,6 +81,23 @@ export async function POST(req: Request) {
     return Response.json({ error: "messages required" }, { status: 400 });
   }
 
+  // 1) 入力長のガード（AI を呼ぶ前＝無料で弾く。回数もまだ消費させん）
+  const badMessages = validateChatMessages(body.messages);
+  if (badMessages) return badRequestText(badMessages);
+  const badContext = validateTabularInput(
+    [
+      { label: "月次データ", value: body.context?.months, max: LIMITS.MAX_CONTEXT_MONTHS },
+      { label: "チャネル", value: body.context?.channels, max: LIMITS.MAX_CONTEXT_CHANNELS },
+      { label: "商品", value: body.context?.topProducts, max: LIMITS.MAX_CONTEXT_PRODUCTS },
+    ],
+    [{ label: "データソース名", value: body.context?.sourceName }],
+  );
+  if (badContext) return badRequestText(badContext);
+
+  // 2) 回数制限（IP/分・IP/日・デモ全体/日）＝定数は src/lib/rate-limit.ts の LIMITS
+  const verdict = await checkRateLimit(req);
+  if (!verdict.ok) return rateLimitTextResponse(verdict);
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     const text = fallbackReply(body.messages);
@@ -55,7 +107,7 @@ export async function POST(req: Request) {
   }
 
   const client = new Anthropic({ apiKey });
-  const systemPrompt = `${SYSTEM_PROMPT}\n\n以下が現在ユーザーが扱っている売上データです:\n\n${contextPackToPromptText(body.context)}`;
+  const systemPrompt = `${SYSTEM_PROMPT}\n\n以下が現在ユーザーが扱っている売上データです:\n\n${contextPackToPromptText(sanitizeContext(body.context))}`;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

@@ -80,6 +80,51 @@ curl -s -X POST http://127.0.0.1:8787/api/summarize   -H "Content-Type: applicat
 
 レスポンスは `{ "summary": "..." }`。**`ANTHROPIC_API_KEY` が未設定でも 200 が返ります**（テンプレート文へ自動フォールバックし、本文に「ANTHROPIC_API_KEYを設定してください」が入る）。つまり *200 が返った＝AI要約が生きている、ではない* ので、検証では本文まで見てください。
 
+## AI API の回数制限（公開デモ用・2026-09-20 追加）
+
+`/api/chat` と `/api/summarize` は誰でも叩ける公開エンドポイントなので、Anthropic API の従量課金を守るために回数制限を入れています。
+
+🔴 **制限値の定数は `src/lib/rate-limit.ts` の `LIMITS` 1か所にまとまっています。変えるときはここだけ触ってください。**
+
+| 制限 | 既定値 | 超過時 |
+| --- | --- | --- |
+| 同一IP／1分 | 10 回 | `429` ＋ 日本語メッセージ |
+| 同一IP／1日（JST 0:00 区切り） | 50 回 | `429` |
+| デモ全体／1日（JST 0:00 区切り） | 300 回 | `429` |
+| 1メッセージの入力文字数 | 2,000 字 | `400` |
+| チャット履歴 | 20 件 / 合計 30,000 字 | `400` |
+| 文脈データの配列 | 月60・チャネル30・商品20 件 | `400`（超過分は AI に渡す前に切り捨て） |
+
+実装は **追加サービス契約なし**（KV / Durable Object / Upstash 等を使わない形）で、
+
+1. モジュールスコープのメモリ（同一 isolate 内は 0ms）
+2. Cloudflare Cache API（`caches.default`）＝同じ colo 内なら isolate をまたいで残る
+
+の**大きい方**を採用しています。⚠️ Cache API は colo 単位なので世界中から同時に叩かれると緩くなります。**最後の砦は Anthropic Console 側の月額上限**（設定済み）です。
+
+`400`（入力長オーバー）は回数を消費せず、AI も呼ばれません（チェック順＝入力長 → 回数制限 → AI 呼び出し）。
+
+### 回数制限の確認コマンド
+
+```bash
+# 11回連続 → 11回目が 429（1分10回の制限）
+for i in $(seq 1 11); do
+  curl -s -o /dev/null -w "$i: %{http_code}\n" -X POST "$BASE/api/summarize" \
+    -H "Content-Type: application/json" --data-binary @scripts/sample-summarize-body.json
+done
+
+# 429 のヘッダ（どの制限に当たったかが x-ratelimit-scope に出る）
+curl -s -D - -o /dev/null -X POST "$BASE/api/summarize" \
+  -H "Content-Type: application/json" --data-binary @scripts/sample-summarize-body.json \
+  | grep -iE "^HTTP|retry-after|x-ratelimit"
+
+# 入力 2,001 字 → 400
+node -e 'const b=require("./scripts/sample-summarize-body.json");b.topProducts[0].productName="あ".repeat(2001);console.log(JSON.stringify(b))' > /tmp/big.json
+curl -s -w "\n%{http_code}\n" -X POST "$BASE/api/summarize" -H "Content-Type: application/json" --data-binary @/tmp/big.json
+```
+
+ローカルで日次制限まで試すときは `CF-Connecting-IP` ヘッダで IP を詐称できます（本番では Cloudflare が上書きするので効きません）。
+
 ### Vercel（旧）
 
 Vercelへの自動デプロイを想定していました。環境変数 `ANTHROPIC_API_KEY` を設定してください。

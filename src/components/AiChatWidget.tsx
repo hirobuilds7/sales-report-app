@@ -46,8 +46,13 @@ export default function AiChatWidget() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: newHistory, context }),
         });
-        if (!res.ok || !res.body) {
-          throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          // 回数制限(429) / 入力長オーバー(400) はサーバーが日本語の本文を返す＝そのまま見せる
+          const detail = (await res.text()).trim();
+          throw new Error(detail || `通信エラーが発生しました（HTTP ${res.status}）`);
+        }
+        if (!res.body) {
+          throw new Error("通信エラーが発生しました（応答が空です）");
         }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -63,13 +68,10 @@ export default function AiChatWidget() {
           });
         }
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "通信エラー";
+        const msg = e instanceof Error ? e.message : "通信エラーが発生しました。";
         setMessages((prev) => {
           const copy = prev.slice();
-          copy[copy.length - 1] = {
-            role: "assistant",
-            content: `エラーが発生しました: ${msg}`,
-          };
+          copy[copy.length - 1] = { role: "assistant", content: msg };
           return copy;
         });
       } finally {
